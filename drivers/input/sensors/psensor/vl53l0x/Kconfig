@@ -1,0 +1,14 @@
+#
+# light and position sensor drivers configuration
+#
+
+	
+
+if PROXIMITY_DEVICE
+
+config PS_VL53L0X
+  bool "psensor vl53l0x"
+	default n
+
+endif
+

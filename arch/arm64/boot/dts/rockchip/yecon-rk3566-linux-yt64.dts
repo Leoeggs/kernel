@@ -1,0 +1,69 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
+ *
+ */
+
+/dts-v1/;
+
+#include "rk3568.dtsi"
+#include "rk3568-linux.dtsi"
+#include "yecon-rk3566/yecon-rk3566-evb-linux.dtsi"
+#include "yecon-rk3566/yecon-wifi-bt.dtsi"
+#include "yecon-rk3566/yecon-lcd-mipi1-8inch.dtsi"
+#include "yecon-rk3566/yecon-lcd-hdmi.dtsi"
+
+/ {
+    compatible = "rockchip,rk3568";
+
+    dvp_power_en: dvp-power-en {
+        compatible = "regulator-fixed";
+        regulator-name = "dvp_power_en";
+        regulator-always-on;
+        regulator-boot-on;
+        gpio = <&gpio2 RK_PC0 GPIO_ACTIVE_HIGH>;
+        enable-active-high;
+    };
+
+    gpio_leds {
+		compatible = "gpio-leds";
+		status = "okay";
+
+		blue_led:blue-led {
+			gpios = <&gpio3 RK_PD0 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+        	red_led:red-led {
+			gpios = <&gpio3 RK_PD1 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+		green_led:green-led {
+			gpios = <&gpio3 RK_PD2 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+		white_led:white-led {
+			gpios = <&gpio3 RK_PD3 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+    };
+};
+
+&vcc3v3_lcd0_n {
+    status = "disabled";
+};
+
+&vcc3v3_pcie {
+    status = "disabled";
+};
+
+&uart5 {
+    status = "okay";
+    pinctrl-names = "default";
+    pinctrl-0 = <&uart5m0_xfer>;
+};
+
+&uart6 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart6m1_xfer>;
+};
