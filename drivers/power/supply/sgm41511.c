@@ -1221,8 +1221,8 @@ static int SGM41511_hw_init(struct SGM41511_device *sgm)
 		pr_err("%s  fail\n",__func__);
 		goto err_out;
 	} 
-	//set reg01=0x14 rigister sys_min=3.0V
-		ret=SGM41511_write_reg(sgm,SGM41511_CHRG_CTRL_1,0x14);
+	//set reg01=0x10 rigister sys_min=2.6V
+		ret=SGM41511_write_reg(sgm,SGM41511_CHRG_CTRL_1,0x10);
 		if (ret){
 		pr_err("%s  fail\n",__func__);
 		goto err_out;
