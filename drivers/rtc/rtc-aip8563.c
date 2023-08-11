@@ -18,6 +18,7 @@
  */
 
 #include <linux/module.h>
+#include <linux/delay.h>
 #include <linux/clk-provider.h>
 #include <linux/i2c.h>
 #include <linux/bcd.h>
@@ -547,6 +548,9 @@ static int aip8563_probe(struct i2c_client *client,
 		dev_err(&client->dev, "init device, %d\n", ret);
 		if (!ret) 
 			break;
+			//lgh add
+			mdelay(50);
+
 		if (4==i) {
 			dev_err(&client->dev, "could not init device, %d\n", ret);
 			return ret;

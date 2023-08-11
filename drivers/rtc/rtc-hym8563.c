@@ -18,6 +18,7 @@
  */
 
 #include <linux/module.h>
+#include <linux/delay.h>
 #include <linux/clk-provider.h>
 #include <linux/i2c.h>
 #include <linux/bcd.h>
@@ -547,10 +548,11 @@ static int hym8563_probe(struct i2c_client *client,
 		dev_err(&client->dev, "init device, %d\n", ret);
 		if (!ret) 
 			break;
-		if (4==i) {
+		if (6==i) {
 			dev_err(&client->dev, "could not init device, %d\n", ret);
 			return ret;
 		}
+		mdelay(50);
 	}
 	
 	if (client->irq > 0) {

@@ -496,6 +496,22 @@
        //lgh add end 2023-2-16
 };
 
+//lgh add RTC aip8563 2023-6-9 
+&i2c5 {
+	status = "okay";
+	hym8563:hym8563@51{
+		status = "okey";
+		compatible = "haoyu,hym8563";
+		reg =<0x51>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&rtc_int>;
+
+
+		interrupt-parent = <&gpio0>;
+		interrupts = <RK_PD3 IRQ_TYPE_LEVEL_LOW>;
+
+	};
+};
 
 &i2c1 {
 
@@ -673,6 +689,12 @@
 	lcd1 {
 		lcd1_rst_gpio: lcd1-rst-gpio {
 			rockchip,pins = <4 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+	//lgh add 2023-6-21
+	rtc{
+		rtc_int: rtc-int{
+			rockchip,pins =<0 RK_PD3 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 };
