@@ -9,11 +9,17 @@
 #include <linux/uaccess.h>
 #include <linux/miscdevice.h>
 #include <linux/pwm.h>
+#include <linux/delay.h>
+#include <linux/ioctl.h>
 
-#define PWM_CAMERA_SET_PERIOD 0x01
-#define PWM_CAMERA_SET_DUTY   0x02
-#define PWM_CAMERA_ENABLE     0x03
-#define PWM_CAMERA_DISABLE    0x04
+
+#define EN_ADDRESS
+
+#define CMD_IOC_MAGIC   'a'
+#define PWM_CAMERA_SET_PERIOD _IOW(CMD_IOC_MAGIC,1,int)
+#define PWM_CAMERA_SET_DUTY   _IOW(CMD_IOC_MAGIC,5,int)
+#define PWM_CAMERA_ENABLE     _IO(CMD_IOC_MAGIC,3)
+#define PWM_CAMERA_DISABLE    _IO(CMD_IOC_MAGIC,4)
 
 
 struct pwm_param{
@@ -26,29 +32,8 @@ struct pwm_param camera;
 
 
 static void pwm_camera_update(void)
-{
-    
+{    
     pwm_config(camera.pwm,camera.duty_ns,camera.period_ns);
-}
-
-static void pwm_camera_enable(void)
-{
-    pwm_enable(camera.pwm);
-}
-
-static void pwm_camera_disable(void)
-{
-    //
-
-    pwm_camera_update();
-    pwm_disable(camera.pwm);
-
-}
-
-static void pwm_camera_set_period(unsigned int period)
-{
-    
-    pwm_set_period(camera.pwm,camera.period_ns);
 }
 
 
@@ -56,14 +41,17 @@ static int pwm_camera_open(struct inode *inode,struct file *filp)
 {
     int ret = 0;
     pwm_set_polarity(camera.pwm,PWM_POLARITY_NORMAL);
+    //camera.period_ns = 5000;
+    //camera.duty_ns = 1000;
     pwm_enable(camera.pwm);
+
     printk("camera_led_pwm open \r\n");
     return ret;
 }
 
 static int pwm_camera_release(struct inode *inode,struct file *filp)
 {
-    pwm_camera_disable();
+    pwm_disable(camera.pwm);
     return 0;
 }
 
@@ -81,64 +69,87 @@ static long pwm_camera_ioctl(struct file *filp, unsigned int cmd, unsigned long 
 {
     unsigned int period;
     unsigned int duty;
+    int rc = 0;
 
     void __user *argp = (void __user *)arg;
 
     switch (cmd)
     {
         case PWM_CAMERA_SET_PERIOD:
+             #ifdef  EN_ADDRESS
             if(argp == NULL){
                 printk("camera:invallid argument.");
                 return -EINVAL;
             }
-
-            if  (copy_from_user(&period, argp, sizeof(unsigned int)))
+           
+            if  (copy_from_user(&camera.period_ns, argp, sizeof(camera.period_ns)))
             {
                 printk("copy_from_user failed.");
                 return -EFAULT;
             }
+            #endif
 
-            pwm_camera_set_period(period);
+            rc =1;
+
+            #ifndef EN_ADDRESS
+
+                camera.period_ns = arg;
+            #endif
+
+            printk("%s: ioc read period = %d",__func__,camera.period_ns);
+
+            pwm_config(camera.pwm,camera.duty_ns,camera.period_ns);
             break;
 
   
 
         case PWM_CAMERA_SET_DUTY:
-
+              #ifdef EN_ADDRESS
             if (argp == NULL)
             {
                 printk("camera: invalid argument.");
                 return -EINVAL;
             }
-
-            if (copy_from_user(&duty, argp, sizeof(unsigned int))){
+          
+            if (copy_from_user(&camera.duty_ns, argp, sizeof(camera.duty_ns))){
                 printk("copy_from_user failed.");
                 return -EFAULT;
             }
+            #endif
 
-            if ((duty<0) ||(duty >100)){
+            
+            rc =2;
+            #ifndef EN_ADDRESS
+              camera.duty_ns=arg;
+            #endif
+
+                printk("%s: ioc read duty = %d",__func__,camera.duty_ns);
+
+                
+            if ((camera.duty_ns<0) ||(camera.duty_ns >5000)){
                 printk("camera:invalid argument.");
                 return -EINVAL;
             }
-            camera.duty_ns = duty;
-            pwm_camera_update();
+          
+            pwm_config(camera.pwm,camera.duty_ns,camera.period_ns);
             break;
         
    
         case PWM_CAMERA_ENABLE:
-            pwm_camera_update();
-            pwm_camera_enable();
+            rc = 3;
+            pwm_enable(camera.pwm);
             break;
 
         case PWM_CAMERA_DISABLE:
-            pwm_camera_disable();
+            rc =4;
+            pwm_disable(camera.pwm);
             break;
 
         default:
             printk("camera: cmd error!\n");
             return -EFAULT;
     }
-    return 0;
+    return rc;
 }
 
 struct file_operations pwm_camera_fops = {
@@ -155,7 +166,26 @@ struct miscdevice pwm_camera_dev ={
     .name = "camera_led,pwm",
 };
 
+static void pwm_camera_test(void)
+{
+    int i =0,led_bar=1000;
+    pwm_enable(camera.pwm);
+    //while (1)
+    {
+        for (i=0;i<5;i++)
+        {
+            camera.duty_ns=i*led_bar;
+            
+             printk("%s: ioc read i = %d",__func__,i);
+            pwm_camera_update();
 
+             printk("%s: ioc read camera.duty = %d,camera.period =%d\n",__func__,camera.duty_ns,camera.period_ns);
+
+            msleep(1000);
+        }
+        
+    }
+}
 
 static int pwm_camera_probe(struct  platform_device *pdev)
 {
@@ -182,7 +212,9 @@ static int pwm_camera_probe(struct  platform_device *pdev)
     
 
     //set pwm
-    pwm_config(camera.pwm,1000,5000);
+    camera.period_ns = 5000;
+    camera.duty_ns = 1000;
+    pwm_config(camera.pwm,camera.duty_ns,camera.period_ns);
     ret = pwm_set_polarity(camera.pwm, PWM_POLARITY_NORMAL);
     if (ret < 0)
     {
@@ -195,7 +227,9 @@ static int pwm_camera_probe(struct  platform_device *pdev)
         //
     misc_register(&pwm_camera_dev);
 
-        //
+        //lgh
+        msleep(1000);
+        pwm_camera_test();
     return 0;
 }
 
@@ -235,7 +269,7 @@ static struct platform_driver pwm_camera_driver = {
     .driver ={
         .name = "camera_led,pwm",
         .owner = THIS_MODULE,
-        .pm = &pwm_camera_pm_ops,
+        //.pm = &pwm_camera_pm_ops,
         .of_match_table = of_pwm_camera_match,
     },
 };
